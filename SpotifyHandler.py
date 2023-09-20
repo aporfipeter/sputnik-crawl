@@ -26,10 +26,11 @@ class SpotifyHandler:
 
     async def create_playlist_for_user(self, user_name, playlist_name ):
         self.spotify_auth_oauth.user_playlist_create(user=user_name, name=playlist_name)
-    """
-    Checks for the playlist to work on based on the playlist name provided.
-    """
+
     async def check_for_playlist_id(self, playlist_name):
+        """
+        Checks for the playlist to work on based on the playlist name provided.
+        """
         playlists_res = self.get_current_user_playlist()
         user_playlists = []
 
@@ -45,14 +46,15 @@ class SpotifyHandler:
             if playlist["name"] == playlist_name:
                 return playlist["id"]
 
-    """
-    Gets the list of crawled albums from Sputnik in the form of a map containing
-    artist, album name and genres
-    It inserts the album Spotify Ids into the input map for each album under the album_spotify_structure property.
-    The property is a dict that will have the album id as the key and the list of track ids as value.
-    This method only initializes the list.
-    """
     def search_trending_album_ids(self, albums):
+        """
+        Gets the list of crawled albums from Sputnik in the form of a map containing
+        artist, album name and genres
+        It inserts the album Spotify Ids into the input map for each album under the album_spotify_structure property.
+        The property is a dict that will have the album id as the key and the list of track ids as value.
+        This method only initializes the list.
+        """
+
         print("Trending Albums")
         print(albums)
 
@@ -80,11 +82,12 @@ class SpotifyHandler:
                 if tr_limit == 10:
                     tr_limit = len(found_album_list)
 
-    """
-    Gets the list of album objects that contain the album id.
-    It appends the album tracks to the array value that's key is the album id
-    """
     def search_tracks_from_trending_albums(self, albums):
+        """
+        Gets the list of album objects that contain the album id.
+        It appends the album tracks to the array value that's key is the album id
+        """
+
         if albums:
             for trending_album in albums:
                 trending_album_id = list(trending_album["album_spotify_structure"].keys())[0]
@@ -94,12 +97,13 @@ class SpotifyHandler:
         else:
             print("No album ids were passed.")
 
-    """
-    Gets the playlist id as input
-    It queries the tracks already added to the playlist by batches of 100.
-    It returns the list of track ids from the playlist
-    """
     async def get_tracks_from_playlist(self, playlist_id):
+        """
+        Gets the playlist id as input
+        It queries the tracks already added to the playlist by batches of 100.
+        It returns the list of track ids from the playlist
+        """
+
         sputnik_tracks = []
         sputnik_tracks_offset = 0
         sputnik_limit = 100
@@ -119,12 +123,13 @@ class SpotifyHandler:
 
         return sputnik_track_ids
 
-    """
-    Gets the list of track ids already on the playlist, the dict of album track ids to album ids to add and the playlist id.
-    It loops over the dict and checks if any of the tracks are already on the playlist based on track ids.
-    If the track is not in
-    """
     def add_tracks_to_playlist(self, playlist_track_ids, trending_album_to_track_id_map, playlist_id):
+        """
+        Gets the list of track ids already on the playlist, the dict of album track ids to album ids to add and the playlist id.
+        It loops over the dict and checks if any of the tracks are already on the playlist based on track ids.
+        If the track is not in the provided playlist, it gets added.
+        """
+
         for album in trending_album_to_track_id_map:
             tracks_to_add = []
 
