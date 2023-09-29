@@ -55,8 +55,8 @@ class SpotifyHandler:
         This method only initializes the list.
         """
 
-        print("Trending Albums")
-        print(albums)
+        # print("Trending Albums")
+        # print(albums)
 
         for tr_album in albums:
             tr_limit = 10
@@ -139,3 +139,5 @@ class SpotifyHandler:
 
             if len(tracks_to_add):
                 self.spotify_auth_oauth.playlist_add_items(playlist_id, tracks_to_add, 0)
+                return 1
+            return -1

@@ -1,5 +1,7 @@
 from SpotifyHandler import SpotifyHandler
 from SputnikCrawler import SputnikCrawler
+from EmailService import EmailService
+from TextPreparator import TextPreparator
 import asyncio
 
 
@@ -9,6 +11,8 @@ async def main():
 
     spotify_current_user = spotify_handler.get_current_user_id()
     sputnik_playlist_name = sputnik_crawler.sputnik_playlist_name
+
+    final_stats = {}
 
     def create_genre_to_album_map(album_map):
         genre_to_album_map = {}
@@ -28,27 +32,39 @@ async def main():
                         "album": album["album"],
                         "album_spotify_structure": album["album_spotify_structure"]
                     })
-        print(genre_to_album_map)
+        # print(genre_to_album_map)
         return genre_to_album_map
+
+    def add_to_final_stats_map(playlist, artist, album):
+        if not final_stats.get(playlist):
+            final_stats[playlist] = []
+        final_stats[playlist].append({
+            "artist": artist,
+            "album": album
+        })
 
     # MAIN LOGIC
     sputnik_trending_albums = sputnik_crawler.get_trending_albums_from_sputnik()
     spotify_handler.search_trending_album_ids(sputnik_trending_albums)
     spotify_handler.search_tracks_from_trending_albums(sputnik_trending_albums)
-    print(sputnik_trending_albums)
     genre_map = create_genre_to_album_map(sputnik_trending_albums)
 
     # Adding to the main list
     sputnik_playlist_id = await spotify_handler.check_for_playlist_id(sputnik_playlist_name)
 
     if sputnik_playlist_id is None:
-        spotify_handler.spotify_auth_oauth.user_playlist_create(user=spotify_current_user, name=sputnik_playlist_name)
-    else:
-        print(f"Playlist found! Id: {sputnik_playlist_id}")
-        sputnik_playlist_track_ids = await spotify_handler.get_tracks_from_playlist(sputnik_playlist_id)
-        for album_object in sputnik_trending_albums:
-            spotify_handler.add_tracks_to_playlist(sputnik_playlist_track_ids, album_object["album_spotify_structure"],
-                                                   sputnik_playlist_id)
+        await spotify_handler.spotify_auth_oauth.user_playlist_create(user=spotify_current_user,
+                                                                      name=sputnik_playlist_name)
+        sputnik_playlist_id = await spotify_handler.check_for_playlist_id(sputnik_playlist_name)
+        print(f"Playlist created: {sputnik_playlist_name}")
+
+    print(f"Playlist found! Id: {sputnik_playlist_id}")
+    sputnik_playlist_track_ids = await spotify_handler.get_tracks_from_playlist(sputnik_playlist_id)
+    for album_object in sputnik_trending_albums:
+        response = spotify_handler.add_tracks_to_playlist(sputnik_playlist_track_ids, album_object["album_spotify_structure"],
+                                               sputnik_playlist_id)
+        if response == 1:
+            add_to_final_stats_map(sputnik_playlist_name, album_object["artist"], album_object["album"])
 
     # Handling genre-specific playlists:
     for genre_tag in list(genre_map.keys()):
@@ -58,13 +74,27 @@ async def main():
         if genre_playlist_id is None:
             await spotify_handler.create_playlist_for_user(spotify_current_user, genre_playlist_name)
             genre_playlist_id = await spotify_handler.check_for_playlist_id(genre_playlist_name)
+            print(f"Playlist created: {genre_playlist_name}")
 
         print(f"Playlist found! Id: {genre_playlist_id}")
         genre_playlist_track_ids = await spotify_handler.get_tracks_from_playlist(genre_playlist_id)
         for genre_album_object in genre_map.get(genre_tag):
-            spotify_handler.add_tracks_to_playlist(genre_playlist_track_ids,
+            response = spotify_handler.add_tracks_to_playlist(genre_playlist_track_ids,
                                                    genre_album_object["album_spotify_structure"],
                                                    genre_playlist_id)
+            if response == 1:
+                add_to_final_stats_map(genre_playlist_name, genre_album_object["artist"], genre_album_object["album"])
+
+    print("Final Map")
+    print(final_stats)
+
+    # if there are new albums, prepare the email and send it
+    if len(final_stats) != 0:
+        tp = TextPreparator()
+        es = EmailService()
+        subject = tp.set_subject()
+        body = tp.prepare_email_text(final_stats)
+        es.send_email(subject, body)
 
 
 if __name__ == "__main__":

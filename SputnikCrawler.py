@@ -4,7 +4,7 @@ import requests
 
 def process_album_page_title(album_page_response):
     album_soup_array = album_page_response.title.text.split()
-    print(album_soup_array)
+    # print(album_soup_array)
 
     if album_soup_array[0] == "Review:":
         album_soup_array.pop(0)
@@ -16,7 +16,7 @@ def process_album_page_title(album_page_response):
     clean_string = clean_string.replace("(album review 2)", "")
     clean_string = clean_string.replace("User Opinions", "")
 
-    print(clean_string)
+    # print(clean_string)
 
     artist_album = clean_string.split("-")
     artist_album[0] = artist_album[0].strip()
@@ -25,7 +25,7 @@ def process_album_page_title(album_page_response):
     artist_without_country = artist_album[0].split(" ")
 
     for index, word in enumerate(artist_without_country):
-        print(f"{index}-{word}")
+        # print(f"{index}-{word}")
         if word[0] == "(" or word[-1] == ")":
             artist_without_country.pop(index)
 
