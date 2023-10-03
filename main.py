@@ -43,9 +43,21 @@ async def main():
             "album": album
         })
 
+    def check_for_missing_albums(album_map):
+        clean_album_map = []
+
+        for album_dict in album_map:
+            if "album_spotify_structure" in album_dict:
+                clean_album_map.append(album_dict)
+            else:
+                print(f"Album not found: {album_dict['artist']} - {album_dict['album']}")
+
+        return clean_album_map
+
     # MAIN LOGIC
     sputnik_trending_albums = sputnik_crawler.get_trending_albums_from_sputnik()
     spotify_handler.search_trending_album_ids(sputnik_trending_albums)
+    sputnik_trending_albums = check_for_missing_albums(sputnik_trending_albums)
     spotify_handler.search_tracks_from_trending_albums(sputnik_trending_albums)
     genre_map = create_genre_to_album_map(sputnik_trending_albums)
 
@@ -61,8 +73,9 @@ async def main():
     print(f"Playlist found! Id: {sputnik_playlist_id}")
     sputnik_playlist_track_ids = await spotify_handler.get_tracks_from_playlist(sputnik_playlist_id)
     for album_object in sputnik_trending_albums:
-        response = spotify_handler.add_tracks_to_playlist(sputnik_playlist_track_ids, album_object["album_spotify_structure"],
-                                               sputnik_playlist_id)
+        response = spotify_handler.add_tracks_to_playlist(sputnik_playlist_track_ids,
+                                                          album_object["album_spotify_structure"],
+                                                          sputnik_playlist_id)
         if response == 1:
             add_to_final_stats_map(sputnik_playlist_name, album_object["artist"], album_object["album"])
 
@@ -80,8 +93,8 @@ async def main():
         genre_playlist_track_ids = await spotify_handler.get_tracks_from_playlist(genre_playlist_id)
         for genre_album_object in genre_map.get(genre_tag):
             response = spotify_handler.add_tracks_to_playlist(genre_playlist_track_ids,
-                                                   genre_album_object["album_spotify_structure"],
-                                                   genre_playlist_id)
+                                                              genre_album_object["album_spotify_structure"],
+                                                              genre_playlist_id)
             if response == 1:
                 add_to_final_stats_map(genre_playlist_name, genre_album_object["artist"], genre_album_object["album"])
 

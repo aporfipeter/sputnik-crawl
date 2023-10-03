@@ -24,7 +24,7 @@ class SpotifyHandler:
     def get_current_user_playlist(self):
         return self.spotify_auth_oauth.current_user_playlists()
 
-    async def create_playlist_for_user(self, user_name, playlist_name ):
+    async def create_playlist_for_user(self, user_name, playlist_name):
         self.spotify_auth_oauth.user_playlist_create(user=user_name, name=playlist_name)
 
     async def check_for_playlist_id(self, playlist_name):

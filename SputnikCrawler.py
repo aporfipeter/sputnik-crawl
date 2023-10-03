@@ -12,17 +12,19 @@ def process_album_page_title(album_page_response):
     album_soup_array.pop(-1)
     clean_string = ' '.join(album_soup_array)
 
+    # print(clean_string)
+
     clean_string = clean_string.replace("(album review )", "")
     clean_string = clean_string.replace("(album review 2)", "")
     clean_string = clean_string.replace("User Opinions", "")
 
-    # print(clean_string)
-
     artist_album = clean_string.split("-")
-    artist_album[0] = artist_album[0].strip()
-    artist_album[1] = artist_album[1].strip()
+    for i in range(len(artist_album)):
+        artist_album[i] = artist_album[i].strip()
+    # print(artist_album)
 
     artist_without_country = artist_album[0].split(" ")
+    # print(artist_without_country)
 
     for index, word in enumerate(artist_without_country):
         # print(f"{index}-{word}")
@@ -34,7 +36,8 @@ def process_album_page_title(album_page_response):
     for index, item in enumerate(artist_album):
         if "(" in item or ")" in item:
             artist_album.pop(index)
-    print(artist_album)
+
+    print(f"Album:  {artist_album}")
     return artist_album
 
 
@@ -94,7 +97,7 @@ class SputnikCrawler:
         band_page_content = res.text
         band_page_soup = BeautifulSoup(band_page_content, "html.parser")
         tag_list = [tag.getText() for tag in band_page_soup.select('a[href*="/genre"]')]
-        print(tag_list)
+        print(f"Genres: {tag_list}")
         return tag_list
 
 
