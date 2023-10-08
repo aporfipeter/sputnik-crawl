@@ -1,0 +1,6 @@
+/recipients.txt
+/venv/.gitignore
+/venv/.Python
+/venv/pyvenv.cfg
+/venv/
+/.cache

@@ -1,44 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
-
-
-def process_album_page_title(album_page_response):
-    album_soup_array = album_page_response.title.text.split()
-    # print(album_soup_array)
-
-    if album_soup_array[0] == "Review:":
-        album_soup_array.pop(0)
-    album_soup_array.pop(-1)
-    album_soup_array.pop(-1)
-    clean_string = ' '.join(album_soup_array)
-
-    # print(clean_string)
-
-    clean_string = clean_string.replace("(album review )", "")
-    clean_string = clean_string.replace("(album review 2)", "")
-    clean_string = clean_string.replace("User Opinions", "")
-
-    artist_album = clean_string.split("-")
-    for i in range(len(artist_album)):
-        artist_album[i] = artist_album[i].strip()
-    # print(artist_album)
-
-    artist_without_country = artist_album[0].split(" ")
-    # print(artist_without_country)
-
-    for index, word in enumerate(artist_without_country):
-        # print(f"{index}-{word}")
-        if word[0] == "(" or word[-1] == ")":
-            artist_without_country.pop(index)
-
-    artist_album[0] = ' '.join(artist_without_country).strip()
-
-    for index, item in enumerate(artist_album):
-        if "(" in item or ")" in item:
-            artist_album.pop(index)
-
-    print(f"Album:  {artist_album}")
-    return artist_album
+import constants
 
 
 def get_band_page_link(album_page_response):
@@ -52,10 +14,11 @@ def get_band_page_link(album_page_response):
 
 
 class SputnikCrawler:
-    def __init__(self):
+    def __init__(self, location_codes):
         self.base_url = "https://www.sputnikmusic.com/"
         self.sputnik_playlist_name = "Trending On Sputnik"
         self.genre_playlist_prefix = "TreOS"
+        self.codes = location_codes
 
     def get_trending_albums_from_sputnik(self):
         res = requests.get(self.base_url)
@@ -82,7 +45,7 @@ class SputnikCrawler:
             band_page_link = get_band_page_link(album_soup)
             band_tags = self.get_band_genre_tags(band_page_link)
 
-            artist_album = process_album_page_title(album_soup)
+            artist_album = self.process_album_page_title(album_soup)
             trending_albums.append({
                 "artist": artist_album[0],
                 "album": artist_album[1],
@@ -100,5 +63,30 @@ class SputnikCrawler:
         print(f"Genres: {tag_list}")
         return tag_list
 
+    def process_album_page_title(self, album_page_response):
 
+        page_title = album_page_response.title.text
+        print(page_title)
+
+        clean_string = self.remove_phrase_from_title(page_title)
+
+        print(clean_string)
+
+        artist_album = clean_string.split("-")
+        for i in range(len(artist_album)):
+            artist_album[i] = artist_album[i].strip()
+        # print(f"after stripping: {artist_album}")
+
+        return artist_album
+
+    def remove_phrase_from_title(self, title_string):
+        for phrase_to_remove in constants.phrases_to_remove:
+            title_string = title_string.replace(phrase_to_remove, "")
+        for country_code in self.codes.country_codes_2:
+            title_string = title_string.replace(f"({country_code})", "")
+        for country_code in self.codes.country_codes_3:
+            title_string = title_string.replace(f"({country_code})", "")
+        for us_state_combo in self.codes.us_state_combos:
+            title_string = title_string.replace(f"({us_state_combo})", "")
+        return title_string
 

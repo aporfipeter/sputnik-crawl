@@ -2,11 +2,13 @@ from SpotifyHandler import SpotifyHandler
 from SputnikCrawler import SputnikCrawler
 from EmailService import EmailService
 from TextPreparator import TextPreparator
+from CountryData import CountryData
 import asyncio
 
 
 async def main():
-    sputnik_crawler = SputnikCrawler()
+    country_data = CountryData()
+    sputnik_crawler = SputnikCrawler(country_data)
     spotify_handler = SpotifyHandler()
 
     spotify_current_user = spotify_handler.get_current_user_id()
