@@ -1,6 +1,5 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
-import asyncio
 
 
 class SpotifyHandler:
@@ -55,23 +54,33 @@ class SpotifyHandler:
         This method only initializes the list.
         """
 
-        # print("Trending Albums")
-        # print(albums)
-
         for tr_album in albums:
             tr_limit = 10
             tr_offset = 0
-            while tr_limit == 10:
+            artist_id = self.perform_spotify_search_for_entity_id(tr_album["artist"], "artist")
+            if artist_id is None:
+                print(f"Artist Not Found: {tr_album['artist']}")
+                continue
+            print(f"Artist Found: {tr_album['artist']} - Id: {artist_id}")
+            tr_album_id = self.get_album_id_by_artist_id(artist_id, tr_album["album"])
+
+            if tr_album_id is not None:
+                print(f"Album Found: {tr_album['album']} - Id: {tr_album_id}")
+                tr_album["album_spotify_structure"] = {tr_album_id: []}
+        print(albums)
+
+        """
+            while tr_limit == 10 and tr_offset < 1000:
                 album_search = self.spotify_auth.search(q=tr_album["album"], type="album", offset=tr_offset)
                 found_album_list = album_search["albums"]["items"]
 
                 for sp_album in found_album_list:
-                    """
+                    
                     print(sp_album["name"])
                     print(sp_album["artists"][0]["name"])
                     print(tr_album[1])
                     print(tr_album[0])
-                    """
+                    
                     if sp_album["artists"][0]["name"].lower() == tr_album["artist"].lower():
                         # trending_album_ids.append(sp_album["id"])
                         tr_album["album_spotify_structure"] = {sp_album["id"]: []}
@@ -81,6 +90,7 @@ class SpotifyHandler:
                 tr_offset += len(found_album_list)
                 if tr_limit == 10:
                     tr_limit = len(found_album_list)
+            """
 
     def search_tracks_from_trending_albums(self, albums):
         """
@@ -141,3 +151,51 @@ class SpotifyHandler:
                 self.spotify_auth_oauth.playlist_add_items(playlist_id, tracks_to_add, 0)
                 return 1
             return -1
+
+    def get_album_id_by_artist_id(self, artist_id, album_name):
+        search_offset = 0
+        album_name_lowercase = album_name.lower()
+        search_in_progress = True
+        album_id = None
+
+        while search_offset < 1000 and search_in_progress is True:
+            artist_album_list = self.spotify_auth.artist_albums(artist_id=artist_id,
+                                                                offset=search_offset)
+            found_album_list = artist_album_list["items"]
+
+            for found_album in found_album_list:
+                found_album_name = found_album["name"].lower()
+
+                if found_album_name in album_name_lowercase or album_name_lowercase in found_album_name:
+                    album_id = found_album["id"]
+                    search_in_progress = False
+                    break
+
+            search_offset += len(found_album_list)
+
+        return album_id
+
+    def perform_spotify_search_for_entity_id(self, search_term, entity_type):
+        search_offset = 0
+        search_term_lowercase = search_term.lower()
+        search_in_progress = True
+        response_key = f"{entity_type}s"
+        return_value = None
+
+        while search_offset < 1000 and search_in_progress is True:
+            search_result = self.spotify_auth.search(q=search_term,
+                                                     type=entity_type,
+                                                     offset=search_offset)
+            found_entity_list = search_result[response_key]["items"]
+
+            for found_entity in found_entity_list:
+                found_entity_name = found_entity["name"].lower()
+
+                if found_entity_name in search_term_lowercase or search_term_lowercase in found_entity_name:
+                    return_value = found_entity["id"]
+                    search_in_progress = False
+                    break
+
+            search_offset += len(found_entity_list)
+
+        return return_value

@@ -70,9 +70,9 @@ async def main():
         await spotify_handler.spotify_auth_oauth.user_playlist_create(user=spotify_current_user,
                                                                       name=sputnik_playlist_name)
         sputnik_playlist_id = await spotify_handler.check_for_playlist_id(sputnik_playlist_name)
-        print(f"Playlist created: {sputnik_playlist_name}")
+        print(f"Playlist Created: {sputnik_playlist_name} - Id: {sputnik_playlist_id}")
 
-    print(f"Playlist found! Id: {sputnik_playlist_id}")
+    print(f"Playlist found: {sputnik_playlist_name} - Id: {sputnik_playlist_id}")
     sputnik_playlist_track_ids = await spotify_handler.get_tracks_from_playlist(sputnik_playlist_id)
     for album_object in sputnik_trending_albums:
         response = spotify_handler.add_tracks_to_playlist(sputnik_playlist_track_ids,
@@ -89,9 +89,9 @@ async def main():
         if genre_playlist_id is None:
             await spotify_handler.create_playlist_for_user(spotify_current_user, genre_playlist_name)
             genre_playlist_id = await spotify_handler.check_for_playlist_id(genre_playlist_name)
-            print(f"Playlist created: {genre_playlist_name}")
+            print(f"Playlist Created: {genre_playlist_name} - Id: {genre_playlist_name}")
 
-        print(f"Playlist found! Id: {genre_playlist_id}")
+        print(f"Playlist Found: {genre_playlist_name} - Id: {genre_playlist_id}")
         genre_playlist_track_ids = await spotify_handler.get_tracks_from_playlist(genre_playlist_id)
         for genre_album_object in genre_map.get(genre_tag):
             response = spotify_handler.add_tracks_to_playlist(genre_playlist_track_ids,

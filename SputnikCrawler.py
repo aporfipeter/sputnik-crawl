@@ -72,7 +72,7 @@ class SputnikCrawler:
 
         print(clean_string)
 
-        artist_album = clean_string.split("-")
+        artist_album = clean_string.split(" - ")
         for i in range(len(artist_album)):
             artist_album[i] = artist_album[i].strip()
         # print(f"after stripping: {artist_album}")
