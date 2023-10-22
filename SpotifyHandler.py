@@ -64,33 +64,11 @@ class SpotifyHandler:
             print(f"Artist Found: {tr_album['artist']} - Id: {artist_id}")
             tr_album_id = self.get_album_id_by_artist_id(artist_id, tr_album["album"])
 
-            if tr_album_id is not None:
-                print(f"Album Found: {tr_album['album']} - Id: {tr_album_id}")
-                tr_album["album_spotify_structure"] = {tr_album_id: []}
-        print(albums)
-
-        """
-            while tr_limit == 10 and tr_offset < 1000:
-                album_search = self.spotify_auth.search(q=tr_album["album"], type="album", offset=tr_offset)
-                found_album_list = album_search["albums"]["items"]
-
-                for sp_album in found_album_list:
-                    
-                    print(sp_album["name"])
-                    print(sp_album["artists"][0]["name"])
-                    print(tr_album[1])
-                    print(tr_album[0])
-                    
-                    if sp_album["artists"][0]["name"].lower() == tr_album["artist"].lower():
-                        # trending_album_ids.append(sp_album["id"])
-                        tr_album["album_spotify_structure"] = {sp_album["id"]: []}
-                        tr_limit += 1
-                        break
-
-                tr_offset += len(found_album_list)
-                if tr_limit == 10:
-                    tr_limit = len(found_album_list)
-            """
+            if tr_album_id is None:
+                print(f"Album Not Found: {tr_album['album']}")
+                continue
+            print(f"Album Found: {tr_album['album']} - Id: {tr_album_id}")
+            tr_album["album_spotify_structure"] = {tr_album_id: []}
 
     def search_tracks_from_trending_albums(self, albums):
         """
@@ -162,6 +140,9 @@ class SpotifyHandler:
             artist_album_list = self.spotify_auth.artist_albums(artist_id=artist_id,
                                                                 offset=search_offset)
             found_album_list = artist_album_list["items"]
+
+            if not len(found_album_list):
+                search_in_progress = False
 
             for found_album in found_album_list:
                 found_album_name = found_album["name"].lower()

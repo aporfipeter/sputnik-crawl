@@ -52,7 +52,7 @@ async def main():
             if "album_spotify_structure" in album_dict:
                 clean_album_map.append(album_dict)
             else:
-                print(f"Album not found: {album_dict['artist']} - {album_dict['album']}")
+                print(f"Search result for album not available: {album_dict['artist']} - {album_dict['album']} - removing from list.")
 
         return clean_album_map
 
