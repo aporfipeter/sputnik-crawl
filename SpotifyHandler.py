@@ -55,18 +55,24 @@ class SpotifyHandler:
         """
 
         for tr_album in albums:
+
             tr_limit = 10
             tr_offset = 0
+
             artist_id = self.perform_spotify_search_for_entity_id(tr_album["artist"], "artist")
+
             if artist_id is None:
                 print(f"Artist Not Found: {tr_album['artist']}")
                 continue
+
             print(f"Artist Found: {tr_album['artist']} - Id: {artist_id}")
+
             tr_album_id = self.get_album_id_by_artist_id(artist_id, tr_album["album"])
 
             if tr_album_id is None:
                 print(f"Album Not Found: {tr_album['album']}")
                 continue
+
             print(f"Album Found: {tr_album['album']} - Id: {tr_album_id}")
             tr_album["album_spotify_structure"] = {tr_album_id: []}
 
