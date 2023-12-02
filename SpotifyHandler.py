@@ -3,11 +3,12 @@ from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
 
 
 class SpotifyHandler:
-    def __init__(self):
+    def __init__(self, text_helper):
         self.scope = "user-library-read user-library-modify playlist-modify-private playlist-modify-public"
         self.auth_manager = SpotifyClientCredentials()
         self.spotify_auth = self.authenticate_with_spotify()
         self.spotify_auth_oauth = self.authenticate_with_spotify_oauth()
+        self.text_helper = text_helper
 
     def authenticate_with_spotify(self):
         sp = spotipy.Spotify(auth_manager=self.auth_manager)
@@ -55,9 +56,6 @@ class SpotifyHandler:
         """
 
         for tr_album in albums:
-
-            tr_limit = 10
-            tr_offset = 0
 
             artist_id = self.perform_spotify_search_for_entity_id(tr_album["artist"], "artist")
 
@@ -119,7 +117,8 @@ class SpotifyHandler:
 
     def add_tracks_to_playlist(self, playlist_track_ids, trending_album_to_track_id_map, playlist_id):
         """
-        Gets the list of track ids already on the playlist, the dict of album track ids to album ids to add and the playlist id.
+        Gets the list of track ids already on the playlist, the dict of album track ids to album ids to add
+        and the playlist id.
         It loops over the dict and checks if any of the tracks are already on the playlist based on track ids.
         If the track is not in the provided playlist, it gets added.
         """
@@ -138,11 +137,11 @@ class SpotifyHandler:
 
     def get_album_id_by_artist_id(self, artist_id, album_name):
         search_offset = 0
-        album_name_lowercase = album_name.lower()
+        album_name_prepped = self.text_helper.prepare_entity_string_for_compare(album_name)
         search_in_progress = True
         album_id = None
 
-        while search_offset < 1000 and search_in_progress is True:
+        while search_offset < 200 and search_in_progress is True:
             artist_album_list = self.spotify_auth.artist_albums(artist_id=artist_id,
                                                                 offset=search_offset)
             found_album_list = artist_album_list["items"]
@@ -151,9 +150,9 @@ class SpotifyHandler:
                 search_in_progress = False
 
             for found_album in found_album_list:
-                found_album_name = found_album["name"].lower()
+                found_album_name = self.text_helper.prepare_entity_string_for_compare(found_album["name"])
 
-                if found_album_name in album_name_lowercase or album_name_lowercase in found_album_name:
+                if found_album_name == album_name_prepped:
                     album_id = found_album["id"]
                     search_in_progress = False
                     break
@@ -164,21 +163,23 @@ class SpotifyHandler:
 
     def perform_spotify_search_for_entity_id(self, search_term, entity_type):
         search_offset = 0
-        search_term_lowercase = search_term.lower()
+        search_term_prepped = self.text_helper.prepare_entity_string_for_compare(search_term)
         search_in_progress = True
         response_key = f"{entity_type}s"
         return_value = None
 
-        while search_offset < 1000 and search_in_progress is True:
+        while search_offset < 200 and search_in_progress is True:
             search_result = self.spotify_auth.search(q=search_term,
                                                      type=entity_type,
                                                      offset=search_offset)
             found_entity_list = search_result[response_key]["items"]
+            if not len(found_entity_list):
+                search_in_progress = False
 
             for found_entity in found_entity_list:
-                found_entity_name = found_entity["name"].lower()
+                found_entity_name = self.text_helper.prepare_entity_string_for_compare(found_entity["name"])
 
-                if found_entity_name in search_term_lowercase or search_term_lowercase in found_entity_name:
+                if found_entity_name == search_term_prepped:
                     return_value = found_entity["id"]
                     search_in_progress = False
                     break
