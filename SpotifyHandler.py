@@ -21,30 +21,49 @@ class SpotifyHandler:
     def get_current_user_id(self):
         return self.spotify_auth_oauth.current_user()["id"]
 
-    def get_current_user_playlist(self):
-        return self.spotify_auth_oauth.current_user_playlists()
+    def get_current_user_playlist(self, offset):
+        return self.spotify_auth_oauth.current_user_playlists(offset=offset)
 
     async def create_playlist_for_user(self, user_name, playlist_name):
         self.spotify_auth_oauth.user_playlist_create(user=user_name, name=playlist_name)
 
-    async def check_for_playlist_id(self, playlist_name):
+    def check_for_playlist_id(self, playlist_name, playlist_list):
         """
-        Checks for the playlist to work on based on the playlist name provided.
+        Checks for the playlist to work on in the list of playlist corresponding to the user
+        based on the playlist name provided.
         """
-        playlists_res = self.get_current_user_playlist()
-        user_playlists = []
 
-        for playlist in playlists_res["items"]:
-            user_playlists.append(
-                {
-                    "name": playlist["name"],
-                    "id": playlist["id"]
-                }
-            )
-
-        for playlist in user_playlists:
+        for playlist in playlist_list:
             if playlist["name"] == playlist_name:
                 return playlist["id"]
+
+    async def get_user_playlists(self):
+        """
+        Checks for the playlists of a user.
+        """
+
+        playlist_search_offset = 0
+        playlist_search_in_progress = True
+        user_playlists = []
+
+        while playlist_search_in_progress:
+            playlists_res = self.get_current_user_playlist(offset=playlist_search_offset)
+
+            if playlists_res is None or len(playlists_res["items"]) == 0:
+                playlist_search_in_progress = False
+            else:
+                for playlist in playlists_res["items"]:
+                    user_playlists.append(
+                        {
+                            "name": playlist["name"],
+                            "id": playlist["id"]
+                        }
+                    )
+                playlist_search_offset += len(playlists_res["items"])
+                if playlist_search_offset == playlists_res["total"]:
+                    playlist_search_in_progress = False
+
+        return user_playlists
 
     def search_trending_album_ids(self, albums):
         """
@@ -58,21 +77,42 @@ class SpotifyHandler:
         for tr_album in albums:
 
             artist_id = self.perform_spotify_search_for_entity_id(tr_album["artist"], "artist")
+            artist_name = tr_album["artist"]
+            collab_artists = []
+            tr_album_id = None
 
             if artist_id is None:
                 print(f"Artist Not Found: {tr_album['artist']}")
-                continue
+                print("Looking for individual artists in collab")
+                collab_artists = self.text_helper.separate_collab_artists(artist_name)
 
-            print(f"Artist Found: {tr_album['artist']} - Id: {artist_id}")
+            else:
+                print(f"Artist Found: {artist_name} - Id: {artist_id}")
+                tr_album_id = self.get_album_id_by_artist_id(artist_id, tr_album["album"])
 
-            tr_album_id = self.get_album_id_by_artist_id(artist_id, tr_album["album"])
+                if tr_album_id is None:
+                    print(f"Album Not Found: {tr_album['album']}")
+                    continue
 
-            if tr_album_id is None:
-                print(f"Album Not Found: {tr_album['album']}")
-                continue
+                print(f"Album Found: {tr_album['album']} - Id: {tr_album_id}")
+                tr_album["album_spotify_structure"] = {tr_album_id: []}
 
-            print(f"Album Found: {tr_album['album']} - Id: {tr_album_id}")
-            tr_album["album_spotify_structure"] = {tr_album_id: []}
+            if len(collab_artists) > 0:
+
+                for collab_artist in collab_artists:
+                    artist_id = self.perform_spotify_search_for_entity_id(collab_artist, "artist")
+                    if artist_id is None:
+                        print(f"Artist Not Found: {collab_artist}")
+                        continue
+                    else:
+                        print(f"Artist Found: {collab_artist} - Id: {artist_id}")
+                        tr_album_id = self.get_album_id_by_artist_id(artist_id, tr_album["album"])
+                        if tr_album_id is None:
+                            print(f"Album Not Found: {tr_album['album']}")
+                        else:
+                            print(f"Album Found: {tr_album['album']} - Id: {tr_album_id}")
+                            tr_album["album_spotify_structure"] = {tr_album_id: []}
+                            break
 
     def search_tracks_from_trending_albums(self, albums):
         """

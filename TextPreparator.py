@@ -1,5 +1,5 @@
 from datetime import date
-from constants import phrases_to_remove, phrase_replace_map
+from constants import phrases_to_remove, phrase_replace_map, collab_phrases
 import unidecode
 
 
@@ -55,3 +55,21 @@ class TextPreparator:
         return_string = unidecode.unidecode(return_string)
         return_string = return_string.replace(" ", "")
         return return_string
+
+    def separate_collab_artists(self, collab_string):
+        """
+        :param collab_string: artist string that potentially contains multiple individual artists
+        :return: list of potential artists names resulting from the saparation of the collab string
+        based on a list of separators
+        """
+
+        collab_artist_list = []
+        for collab_phrase in collab_phrases:
+            temp_artist_list = collab_string.split(collab_phrase)
+            temp_artist_list_stripped = [individual_artist.strip() for individual_artist in temp_artist_list]
+            collab_artist_list += temp_artist_list_stripped
+
+        print(collab_artist_list)
+        return collab_artist_list
+
+

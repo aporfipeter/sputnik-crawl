@@ -11,9 +11,11 @@ async def main(test=False):
     tp = TextPreparator(country_data)
     sputnik_crawler = SputnikCrawler(tp)
     spotify_handler = SpotifyHandler(tp)
+    user_playlists = []
 
     spotify_current_user = spotify_handler.get_current_user_id()
     sputnik_playlist_name = sputnik_crawler.sputnik_playlist_name
+    user_playlists = await spotify_handler.get_user_playlists()
 
     final_stats = {}
 
@@ -63,12 +65,17 @@ async def main(test=False):
         genre_map = create_genre_to_album_map(sputnik_trending_albums)
 
         # Adding to the main list
-        sputnik_playlist_id = await spotify_handler.check_for_playlist_id(sputnik_playlist_name)
+        sputnik_playlist_id = spotify_handler.check_for_playlist_id(sputnik_playlist_name, user_playlists)
 
         if sputnik_playlist_id is None:
             await spotify_handler.spotify_auth_oauth.user_playlist_create(user=spotify_current_user,
                                                                           name=sputnik_playlist_name)
-            sputnik_playlist_id = await spotify_handler.check_for_playlist_id(sputnik_playlist_name)
+            user_playlists = await spotify_handler.get_user_playlists()
+            sputnik_playlist_id = spotify_handler.check_for_playlist_id(sputnik_playlist_name, user_playlists)
+            user_playlists.append({
+                "name": sputnik_playlist_name,
+                "id": sputnik_playlist_id
+            })
             print(f"Playlist Created: {sputnik_playlist_name} - Id: {sputnik_playlist_id}")
 
         print(f"Playlist Found: {sputnik_playlist_name} - Id: {sputnik_playlist_id}")
@@ -83,12 +90,21 @@ async def main(test=False):
         # Handling genre-specific playlists:
         for genre_tag in list(genre_map.keys()):
             genre_playlist_name = f"{sputnik_crawler.genre_playlist_prefix}: {genre_tag}"
-            genre_playlist_id = await spotify_handler.check_for_playlist_id(genre_playlist_name)
+            genre_playlist_id = spotify_handler.check_for_playlist_id(genre_playlist_name, user_playlists)
 
             if genre_playlist_id is None:
-                await spotify_handler.create_playlist_for_user(spotify_current_user, genre_playlist_name)
-                genre_playlist_id = await spotify_handler.check_for_playlist_id(genre_playlist_name)
-                print(f"Playlist Created: {genre_playlist_name} - Id: {genre_playlist_name}")
+                print(f"Playlist not found: {genre_playlist_name} - creating...")
+                await spotify_handler.create_playlist_for_user(spotify_current_user,
+                                                               genre_playlist_name)
+
+                user_playlists = await spotify_handler.get_user_playlists()
+                genre_playlist_id = spotify_handler.check_for_playlist_id(genre_playlist_name, user_playlists)
+
+                user_playlists.append({
+                    "name": genre_playlist_name,
+                    "id": genre_playlist_id
+                })
+                print(f"Playlist Created: {genre_playlist_name} - Id: {genre_playlist_id}")
 
             print(f"Playlist Found: {genre_playlist_name} - Id: {genre_playlist_id}")
             genre_playlist_track_ids = await spotify_handler.get_tracks_from_playlist(genre_playlist_id)
@@ -97,7 +113,8 @@ async def main(test=False):
                                                                   genre_album_object["album_spotify_structure"],
                                                                   genre_playlist_id)
                 if response == 1:
-                    add_to_final_stats_map(genre_playlist_name, genre_album_object["artist"], genre_album_object["album"])
+                    add_to_final_stats_map(genre_playlist_name, genre_album_object["artist"],
+                                           genre_album_object["album"])
 
         print("Final Map")
         print(final_stats)
@@ -109,7 +126,10 @@ async def main(test=False):
             body = tp.prepare_email_text(final_stats)
             es.send_email(subject, body)
     else:
-        print("test")
+        print("Running test mode")
+        collab_title = "Full of Hell and Nothing"
+        print(tp.separate_collab_artists(collab_title))
+
 
 
 if __name__ == "__main__":
